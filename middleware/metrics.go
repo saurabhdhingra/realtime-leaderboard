@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// MetricsStore holds API metrics information
 type MetricsStore struct {
 	RequestCount       map[string]int64
 	ErrorCount         map[string]int64
@@ -18,7 +17,6 @@ type MetricsStore struct {
 	mu                 sync.RWMutex
 }
 
-// Global metrics store
 var Metrics = &MetricsStore{
 	RequestCount:       make(map[string]int64),
 	ErrorCount:         make(map[string]int64),
@@ -26,12 +24,10 @@ var Metrics = &MetricsStore{
 	RequestCountByPath: make(map[string]map[string]int64),
 }
 
-// GetMetrics returns a copy of the current metrics
 func (ms *MetricsStore) GetMetrics() gin.H {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	// Create deep copies of all metrics
 	requestCount := make(map[string]int64)
 	errorCount := make(map[string]int64)
 	responseTimes := make(map[string]time.Duration)
@@ -57,7 +53,6 @@ func (ms *MetricsStore) GetMetrics() gin.H {
 		requestCountByPath[method] = methodMap
 	}
 
-	// Calculate average response times
 	avgResponseTimes := make(map[string]float64)
 	for method, totalTime := range responseTimes {
 		count := requestCount[method]
@@ -66,13 +61,11 @@ func (ms *MetricsStore) GetMetrics() gin.H {
 		}
 	}
 
-	// Total requests
 	var totalRequests int64
 	for _, count := range requestCount {
 		totalRequests += count
 	}
 
-	// Total errors
 	var totalErrors int64
 	for _, count := range errorCount {
 		totalErrors += count
@@ -89,62 +82,48 @@ func (ms *MetricsStore) GetMetrics() gin.H {
 	}
 }
 
-// TrackRequest tracks a request in the metrics store
 func (ms *MetricsStore) TrackRequest(method, path string, duration time.Duration, isError bool) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	// Track request count
 	ms.RequestCount[method]++
 
-	// Track error count if request resulted in error
 	if isError {
 		ms.ErrorCount[method]++
 	}
 
-	// Track response time
 	ms.ResponseTimes[method] += duration
 
-	// Track request count by path
 	if ms.RequestCountByPath[method] == nil {
 		ms.RequestCountByPath[method] = make(map[string]int64)
 	}
 	ms.RequestCountByPath[method][path]++
 }
 
-// MetricsMiddleware tracks request metrics
 func MetricsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Start timer
 		start := time.Now()
 
-		// Process request
 		c.Next()
 
-		// Stop timer
 		duration := time.Since(start)
 
-		// Get request method and path
 		method := c.Request.Method
 		path := c.FullPath()
 		if path == "" {
 			path = "unknown"
 		}
 
-		// Check if request resulted in error
 		isError := c.Writer.Status() >= 400
 
-		// Track request
 		Metrics.TrackRequest(method, path, duration, isError)
 	}
 }
 
-// MetricsHandler returns the current metrics
 func MetricsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, Metrics.GetMetrics())
 }
 
-// PrintMetrics prints the current metrics to stdout
 func PrintMetrics() {
 	metrics := Metrics.GetMetrics()
 	
@@ -166,7 +145,7 @@ func PrintMetrics() {
 	fmt.Println("\nTop Paths:")
 	for method, paths := range metrics["requests_by_path"].(map[string]map[string]int64) {
 		fmt.Printf("  %s:\n", method)
-		// Find top 5 paths
+
 		type pathCount struct {
 			path  string
 			count int64
@@ -175,7 +154,7 @@ func PrintMetrics() {
 		for path, count := range paths {
 			topPaths = append(topPaths, pathCount{path, count})
 		}
-		// Sort by count (simple bubble sort for this small dataset)
+
 		for i := 0; i < len(topPaths)-1; i++ {
 			for j := 0; j < len(topPaths)-i-1; j++ {
 				if topPaths[j].count < topPaths[j+1].count {
@@ -183,7 +162,7 @@ func PrintMetrics() {
 				}
 			}
 		}
-		// Print top 5 or all if less than 5
+
 		count := 5
 		if len(topPaths) < count {
 			count = len(topPaths)

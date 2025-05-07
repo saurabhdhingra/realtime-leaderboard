@@ -6,7 +6,6 @@ import (
 )
 
 func TestLeaderboardEntry(t *testing.T) {
-	// Test LeaderboardEntry creation and structure
 	entry := LeaderboardEntry{
 		Rank:     1,
 		UserID:   "user123",
@@ -32,7 +31,6 @@ func TestLeaderboardEntry(t *testing.T) {
 }
 
 func TestScoreCreation(t *testing.T) {
-	// Test Score creation and structure
 	now := time.Now()
 	score := Score{
 		UserID:    "user123",

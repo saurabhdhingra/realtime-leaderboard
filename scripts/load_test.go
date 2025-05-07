@@ -13,15 +13,11 @@ import (
 
 const (
 	apiBaseURL = "http://localhost:8080/api"
-	// Number of concurrent users to simulate
 	concurrentUsers = 10
-	// Number of requests per user
 	requestsPerUser = 50
-	// Delay between requests in milliseconds
 	requestDelay = 50
 )
 
-// User represents a user for testing
 type User struct {
 	ID       string
 	Username string
@@ -30,13 +26,11 @@ type User struct {
 	Token    string
 }
 
-// Score represents a score submission
 type Score struct {
 	GameID string  `json:"game_id"`
 	Score  float64 `json:"score"`
 }
 
-// Stats holds statistics for the load test
 type Stats struct {
 	TotalRequests     int
 	SuccessfulRequests int
@@ -48,7 +42,6 @@ type Stats struct {
 	mu                sync.Mutex
 }
 
-// AddRequest adds a request to the stats
 func (s *Stats) AddRequest(success bool, duration time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -72,7 +65,6 @@ func (s *Stats) AddRequest(success bool, duration time.Duration) {
 	}
 }
 
-// CalculateAverage calculates the average request time
 func (s *Stats) CalculateAverage() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -82,7 +74,6 @@ func (s *Stats) CalculateAverage() {
 	}
 }
 
-// RegisterUser registers a new user for testing
 func registerUser(username, email, password string) (*User, error) {
 	user := &User{
 		Username: username,
@@ -90,7 +81,6 @@ func registerUser(username, email, password string) (*User, error) {
 		Password: password,
 	}
 
-	// Create request body
 	reqBody, err := json.Marshal(map[string]string{
 		"username": username,
 		"email":    email,
@@ -100,14 +90,12 @@ func registerUser(username, email, password string) (*User, error) {
 		return nil, err
 	}
 
-	// Create request
 	req, err := http.NewRequest("POST", apiBaseURL+"/auth/register", bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send request
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -115,12 +103,10 @@ func registerUser(username, email, password string) (*User, error) {
 	}
 	defer resp.Body.Close()
 
-	// Check status code
 	if resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("failed to register user: status %d", resp.StatusCode)
 	}
 
-	// Parse response
 	var response struct {
 		Token string `json:"token"`
 		User  struct {
@@ -138,9 +124,7 @@ func registerUser(username, email, password string) (*User, error) {
 	return user, nil
 }
 
-// SubmitScore submits a score to the API
 func submitScore(token string, gameID string, score float64, stats *Stats) {
-	// Create request body
 	reqBody, err := json.Marshal(map[string]interface{}{
 		"game_id": gameID,
 		"score":   score,
@@ -150,7 +134,6 @@ func submitScore(token string, gameID string, score float64, stats *Stats) {
 		return
 	}
 
-	// Create request
 	req, err := http.NewRequest("POST", apiBaseURL+"/leaderboard/score", bytes.NewBuffer(reqBody))
 	if err != nil {
 		log.Printf("Error creating request: %v", err)
@@ -160,7 +143,6 @@ func submitScore(token string, gameID string, score float64, stats *Stats) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	// Send request and measure time
 	start := time.Now()
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -180,16 +162,14 @@ func submitScore(token string, gameID string, score float64, stats *Stats) {
 	}
 }
 
-// GetLeaderboard gets the leaderboard from the API
 func getLeaderboard(gameID string, stats *Stats) {
-	// Create request
+
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/leaderboard/game/%s", apiBaseURL, gameID), nil)
 	if err != nil {
 		log.Printf("Error creating request: %v", err)
 		return
 	}
 
-	// Send request and measure time
 	start := time.Now()
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
@@ -209,34 +189,27 @@ func getLeaderboard(gameID string, stats *Stats) {
 	}
 }
 
-// RunUserWorkload simulates a user submitting scores and checking the leaderboard
 func runUserWorkload(user *User, gameID string, wg *sync.WaitGroup, stats *Stats) {
 	defer wg.Done()
 	
 	for i := 0; i < requestsPerUser; i++ {
-		// Generate a random score between 1 and 1000
 		score := float64(rand.Intn(1000) + 1)
-		
-		// Submit score (70% of requests)
+
 		if rand.Float32() < 0.7 {
 			submitScore(user.Token, gameID, score, stats)
 		} else {
-			// Get leaderboard (30% of requests)
 			getLeaderboard(gameID, stats)
 		}
-		
-		// Sleep to simulate user delay
+
 		time.Sleep(time.Duration(requestDelay) * time.Millisecond)
 	}
 }
 
 func main() {
-	// Set random seed
 	rand.Seed(time.Now().UnixNano())
 	
-	// Create stats object
 	stats := &Stats{
-		MinTime: time.Hour, // Initialize with a large value
+		MinTime: time.Hour,
 	}
 	
 	fmt.Println("Realtime Leaderboard Load Test")
@@ -245,8 +218,7 @@ func main() {
 	fmt.Printf("Requests per user: %d\n", requestsPerUser)
 	fmt.Printf("Total requests: %d\n", concurrentUsers*requestsPerUser)
 	fmt.Println("==============================")
-	
-	// Register test users
+
 	users := make([]*User, concurrentUsers)
 	for i := 0; i < concurrentUsers; i++ {
 		username := fmt.Sprintf("loadtest_user_%d_%d", i, time.Now().UnixNano())
@@ -264,29 +236,22 @@ func main() {
 	fmt.Printf("Registered %d test users\n", len(users))
 	fmt.Println("Starting load test...")
 	
-	// Use a consistent game ID for all tests
 	gameID := "loadtest_game"
 	
-	// Start time
 	startTime := time.Now()
-	
-	// Wait group for all users
+
 	var wg sync.WaitGroup
 	wg.Add(concurrentUsers)
-	
-	// Start concurrent user workloads
+
 	for i := 0; i < concurrentUsers; i++ {
 		go runUserWorkload(users[i], gameID, &wg, stats)
 	}
-	
-	// Wait for all users to finish
+
 	wg.Wait()
-	
-	// Calculate total time and statistics
+
 	totalTime := time.Since(startTime)
 	stats.CalculateAverage()
-	
-	// Print results
+
 	fmt.Println("\nLoad Test Results")
 	fmt.Println("================")
 	fmt.Printf("Total test time: %v\n", totalTime)
