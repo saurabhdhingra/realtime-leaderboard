@@ -18,7 +18,7 @@ The system is structured using a Clean/Hexagonal Architecture pattern, ensuring 
 | **Redis** | Real-time Leaderboard Ranking | Sorted Sets (ZSET) |
 | **PostgreSQL** | User Management, Auth, and Score History | Async SQLAlchemy 2.0 (`asyncpg`) |
 
-## 🛠️ Project Setup and Local Run
+## Project Setup and Local Run
 
 ### Prerequisites
 
@@ -27,7 +27,7 @@ You need Docker installed to easily run the required databases (PostgreSQL and R
 1.  **Clone the repository:**
 
     ```bash
-    git clone [your-repo-link]
+    git clone https://github.com/saurabhdhingra/realtime-leaderboard/
     cd leaderboard_app
     ```
 
@@ -82,7 +82,7 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
 The application will be available at `http://localhost:8000`.
 
-## 🔒 Authentication Flow (JWT)
+## Authentication Flow (JWT)
 
 All secure endpoints (submitting scores, getting user rank, reports) require a JWT access token.
 
@@ -90,7 +90,7 @@ All secure endpoints (submitting scores, getting user rank, reports) require a J
 2.  **Login:** Send credentials to `POST /v1/auth/token`. This returns a JWT `access_token`.
 3.  **Access:** Include the token in subsequent request headers: `Authorization: Bearer [access_token]`.
 
-## 📝 Key Endpoints
+## Key Endpoints
 
 | Method | Path | Description | Authentication | Data Store |
 | :--- | :--- | :--- | :--- | :--- |
