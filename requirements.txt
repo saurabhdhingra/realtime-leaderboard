@@ -1,4 +1,9 @@
 fastapi
 pydantic
-redis
-uvicorn
+redis==5.0.0
+uvicorn[standard]
+sqlalchemy[asyncio]
+asyncpg
+python-jose[cryptography]   # For JWT
+passlib[bcrypt]             # For secure password hashing
+python-dotenv               # For managing environment variables
